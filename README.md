@@ -11,15 +11,16 @@
 
 ## ✨ Features
 
-- 🌍 **Universal Language Support** - Works with ANY file type (JavaScript, Python, Go, Rust, C++, HTML, CSS, YAML, Dockerfile, etc.)
-- 🤖 **5 AI Providers** - OpenAI GPT-4, Claude, Gemini, Cohere, Ollama (local)
+- 🌍 **Universal Language Support** - Works with **ANY** file type (JavaScript, Python, Go, Rust, C++, HTML, CSS, YAML, Dockerfile, Markdown, etc.)
+- 🤖 **5 AI Providers** - OpenAI GPT-4, Anthropic Claude, Google Gemini, Cohere, Ollama (local)
 - 🚀 **Lightning Fast** - Cached results with smart binary file detection
 - 🎯 **Custom Rules** - Define your own coding standards in natural language
 - 🛡️ **Security First** - Auto-masks secrets, ignores sensitive files, smart filtering
 - 🔧 **Zero Config** - Works out of the box with sensible defaults
-- ⏱️ **Timeout Protection** - Handles network issues gracefully with commit message flags
+- ⏱️ **Timeout Protection** - Graceful handling with configurable timeouts
 - 🎨 **Beautiful Output** - Colorized, readable feedback with smart formatting
 - 📊 **Commit Tracking** - Flags show which commits were AI-reviewed
+- 🔄 **Modern Husky Support** - No deprecated warnings, clean setup
 
 ## 🚀 Quick Start
 
@@ -32,45 +33,33 @@ npm install -g ai-commit-guard
 ### 2. Setup in Your Project
 
 ```bash
-# Install husky (if not already installed)
-npm install --save-dev husky
-npx husky init
-
-# Add AI Guard to pre-commit hook
-echo "npx ai-commit-guard" > .husky/pre-commit
-chmod +x .husky/pre-commit
+# One command setup - works in any git repository
+ai-commit-guard --setup
 ```
 
 ### 3. Set Your AI API Key
 
-**Option A: OpenAI (Recommended)**
-```bash
-export OPENAI_API_KEY="sk-your-openai-key-here"
-```
+Choose your preferred AI provider:
 
-**Option B: Anthropic Claude**
 ```bash
+# OpenAI (Recommended)
+export OPENAI_API_KEY="sk-your-openai-key-here"
+
+# Anthropic Claude
 export CLAUDE_API_KEY="sk-ant-your-claude-key-here"
 export AI_PROVIDER="claude"
-```
 
-**Option C: Google Gemini**
-```bash
+# Google Gemini
 export GEMINI_API_KEY="your-gemini-api-key"
 export AI_PROVIDER="gemini"
-```
 
-**Option D: Cohere**
-```bash
+# Cohere
 export COHERE_API_KEY="your-cohere-api-key"
 export AI_PROVIDER="cohere"
-```
 
-**Option E: Ollama (Local, Free)**
-```bash
-# Install and run Ollama locally
+# Ollama (Local - Free!)
 export AI_PROVIDER="ollama"
-# No API key needed!
+# No API key needed - runs locally
 ```
 
 ### 4. That's It! 🎉
@@ -79,405 +68,389 @@ Now AI Guard will automatically review your code on every commit:
 
 ```bash
 git add .
-git commit -m "feat: add user authentication"
+git commit -m "feat: add user authentication system"
 # → AI Guard automatically reviews your changes
 ```
 
 ## 🌐 Universal Language Support
 
-Works with **ANY** programming language and file type:
+**Works with ANY programming language and file type - no configuration needed!**
 
 ### 💻 Programming Languages
-```bash
+```
 ✅ JavaScript, TypeScript, Python, Go, Rust, Java, C++, C#, PHP, Ruby
 ✅ Kotlin, Swift, Dart, Scala, Clojure, Elixir, Haskell, F#
 ✅ Shell scripts, PowerShell, Batch files
 ```
 
 ### 🌐 Web Technologies
-```bash
-✅ HTML, CSS, SCSS, SASS, Less
-✅ React (JSX/TSX), Vue, Angular, Svelte, Angular
-✅ Node.js, Express, Next.js, Nuxt.js
+```
+✅ HTML, CSS, SCSS, SASS, Less, Stylus
+✅ React (JSX/TSX), Vue, Angular, Svelte, Next.js, Nuxt.js
+✅ Node.js, Express, FastAPI, Django, Rails
 ```
 
 ### ⚙️ DevOps & Infrastructure
-```bash
+```
 ✅ Docker (Dockerfile, docker-compose.yml)
 ✅ Kubernetes (YAML manifests, Helm charts)
-✅ Terraform, Ansible, CloudFormation
-✅ GitHub Actions, GitLab CI, Jenkins
+✅ Terraform, Ansible, CloudFormation, Pulumi
+✅ GitHub Actions, GitLab CI, Jenkins, CircleCI
 ```
 
 ### 📄 Configuration & Data
-```bash
-✅ JSON, YAML, TOML, INI, XML
+```
+✅ JSON, YAML, TOML, INI, XML, HCL
 ✅ Environment files (.env, .envrc)
-✅ Config files (nginx.conf, apache.conf)
+✅ Config files (nginx.conf, apache.conf, etc.)
 ```
 
 ### 📚 Documentation & Database
-```bash
+```
 ✅ Markdown, reStructuredText, AsciiDoc
-✅ SQL, NoSQL queries, Prisma schema
-✅ API specs (OpenAPI, GraphQL)
+✅ SQL, NoSQL queries, Prisma schema, GraphQL
+✅ API specs (OpenAPI, Swagger, Postman)
 ```
 
-## 📋 Custom Rules & Security (Optional)
+## 📊 Example Output
 
-### Universal Coding Rules
-Create a `.code-rules.md` file in your project root to define coding standards for **any language**:
+### ✅ **Clean Code (Passes Review):**
+```bash
+ℹ️  🔍 Checking staged files...
+ℹ️  🔒 Ignored 2 binary/sensitive files
+ℹ️  📝 Reviewing 3 files using OPENAI...
+🤖 Sending to OPENAI for review (timeout: 30s)...
+✅ Code review passed!
+ℹ️  Added flag: [AI-REVIEW-PASSED]
+```
+
+### ❌ **Issues Found (Blocks Commit):**
+```bash
+ℹ️  🔍 Checking staged files...
+ℹ️  📝 Reviewing 2 files using CLAUDE...
+🤖 Sending to CLAUDE for review (timeout: 45s)...
+❌ Code review failed!
+
+  1. **Exposed Secret**: API key hardcoded in config.js line 12
+     Fix: Move to environment variable process.env.API_KEY
+
+  2. **Magic String**: 'active' used directly in user.js line 25  
+     Fix: Use named constant USER_STATUS.ACTIVE
+
+  3. **Missing Error Handling**: No try-catch in async function
+     Fix: Add proper error handling for database operations
+```
+
+### ⏱️ **Timeout (Allows Commit with Flag):**
+```bash
+🤖 Sending to GEMINI for review (timeout: 30s)...
+⚠️  AI review timed out after 30 seconds
+ℹ️  Added flag: [AI-REVIEW-FAILED-TIMEOUT]
+✅ Commit completed with AI review flag
+```
+
+## 📋 Configuration (Optional)
+
+### 🎯 **Custom Coding Rules** (`.code-rules.md`)
+
+Create project-specific rules in natural language:
 
 ```markdown
-# Universal Code Review Rules
+# My Project Code Review Rules
 
-## Code Quality
-- Use meaningful variable and function names
-- Keep functions under 30 lines when possible
-- No magic numbers or strings - use named constants
-- Add comments for complex business logic
-- Remove unused imports and variables
+## Security Requirements
+- Never commit API keys, passwords, or tokens
+- All user inputs must be validated and sanitized
+- Use parameterized queries for database operations
+- Implement proper authentication for all endpoints
 
-## Security & Best Practices
-- Never commit sensitive data (API keys, passwords, tokens)
-- Validate all user inputs
-- Use proper error handling
-- Follow consistent naming conventions
-- Add appropriate logging for debugging
-
-## Language-Specific Rules
-
-### Python
-- Follow PEP 8 style guidelines
-- Use type hints for function parameters
-- Prefer list comprehensions over loops when appropriate
-
-### JavaScript/TypeScript
-- Use const/let instead of var
-- Prefer async/await over .then() chains
+## Code Quality Standards  
+- Functions should be under 25 lines
+- Use TypeScript interfaces for all data structures
 - Add JSDoc comments for public functions
+- Follow single responsibility principle
 
-### Go
-- Follow Go naming conventions
-- Handle errors explicitly
-- Use context for cancellation
+## Project-Specific Rules
+- All React components must have PropTypes or TypeScript types
+- Use our custom error handling utility for async operations
+- Database queries must include proper indexing considerations
+- API responses must follow our standard format
 
-### Docker
-- Use multi-stage builds for smaller images
-- Don't run containers as root
-- Pin base image versions
+## Framework Guidelines
+### React/Next.js
+- Use hooks instead of class components
+- Implement proper loading and error states
+- Use Next.js Image component for optimization
 
-### YAML/Config Files
-- Use consistent indentation
-- Add comments explaining complex configurations
-- Validate syntax and structure
+### Node.js/Express
+- Always use middleware for request validation
+- Implement rate limiting for public endpoints
+- Use structured logging with correlation IDs
 ```
 
-### Security & Ignore Patterns
-Create a `.ai-guard-ignore` file to exclude files from AI review:
+### 🚫 **Ignore Patterns** (`.ai-guard-ignore`)
+
+Exclude files from AI review:
 
 ```bash
 # Sensitive files (automatically ignored by default)
 *.env*
 *.key
-*.pem
-*.keystore
-*password*
 *secret*
-*token*
-*api-key*
+*password*
 *credential*
 
-# Build and generated files
+# Generated/Build files
 dist/*
 build/*
 out/*
-target/*
+coverage/*
 node_modules/*
+
+# Large dependencies
 vendor/*
-.venv/*
-__pycache__/*
+public/vendor/*
+*.min.js
+*.bundle.*
+package-lock.json
 
-# Binary files (automatically detected)
-*.exe
-*.dll
-*.so
-*.dylib
-*.jpg
-*.png
-*.pdf
-*.zip
-
-# Custom patterns for your project
+# Project-specific
 legacy-code/*
 third-party/*
-generated/*
+generated-schema.ts
 *.generated.*
-temp/*
 ```
 
-**🔒 Built-in Security Features:**
-- Automatically detects and ignores sensitive files by name patterns
-- Smart binary file detection (by extension and git analysis)
-- Masks API keys, tokens, and secrets in code diffs
-- Configurable file size limits to skip large files
-- Comprehensive exclude patterns for build artifacts
+### ⚙️ **Environment Variables**
 
-## 🛠️ Usage Examples
-
-### Multi-Language Projects
-```bash
-git add .
-# Reviews: Python APIs, React frontend, Dockerfile, k8s YAML, Go services
-git commit -m "feat: add microservice architecture"
-```
-
-### Frontend Applications
-```bash
-git add src/ public/ package.json
-# Reviews: TypeScript, CSS, HTML, JSON configs, component files
-git commit -m "ui: redesign dashboard with dark mode"
-```
-
-### Infrastructure as Code
-```bash
-git add infrastructure/
-# Reviews: Terraform, Kubernetes YAML, shell scripts, Ansible playbooks
-git commit -m "infra: add auto-scaling and monitoring"
-```
-
-### Documentation Projects
-```bash
-git add docs/ README.md
-# Reviews: Markdown, configuration files, API specs
-git commit -m "docs: update API documentation and examples"
-```
-
-## 📊 Beautiful Output Examples
-
-### ✅ Successful Review
-```bash
-ℹ️  🔍 Checking staged files...
-ℹ️  🔒 Ignored 3 binary/sensitive files
-ℹ️  📝 Reviewing 5 files using OPENAI...
-🤖 Sending to OPENAI for review (timeout: 30s)...
-✅ Code review passed! [AI-REVIEW-PASSED]
-
-💡 Suggestions:
-  • Great job using environment variables for configuration
-  • Consider adding error handling in api/users.py line 45
-  • Docker multi-stage build looks efficient!
-```
-
-### ❌ Issues Found
-```bash
-ℹ️  🔍 Checking staged files...
-ℹ️  📝 Reviewing 4 files using CLAUDE...
-🤖 Sending to CLAUDE for review...
-❌ Code review failed!
-
-  • src/auth.js: Hardcoded API key on line 12
-    Fix: Move to environment variable or config file
-    
-  • docker-compose.yml: Using 'latest' tag for production
-    Fix: Pin specific version like 'postgres:14.2'
-    
-  • README.md: Missing installation instructions
-    Fix: Add quick start section with prerequisites
-```
-
-### ⏱️ Timeout Protection
-```bash
-ℹ️  🔍 Checking staged files...
-ℹ️  📝 Reviewing 8 files using GEMINI...
-🤖 Sending to GEMINI for review (timeout: 30s)...
-⚠️  AI review timed out after 30 seconds
-ℹ️  Adding timeout flag: [AI-REVIEW-FAILED-TIMEOUT]
-✅ Commit completed with AI review flag
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | - | `sk-proj-...` |
-| `CLAUDE_API_KEY` | Claude API key | - | `sk-ant-...` |
-| `GEMINI_API_KEY` | Google Gemini API key | - | `AIza...` |
-| `COHERE_API_KEY` | Cohere API key | - | `co-...` |
-| `AI_PROVIDER` | AI provider to use | `openai` | `claude`, `gemini`, `cohere`, `ollama` |
-| `AI_MODEL` | Specific model name | Provider default | `gpt-4`, `claude-3-sonnet`, `gemini-pro` |
-| `AI_GUARD_TIMEOUT` | Review timeout (ms) | `30000` | `45000` |
-| `AI_GUARD_MAX_FILE_SIZE` | Max file size (bytes) | `50000` | `100000` |
-
-### Configuration Files
-
-| File | Purpose | Auto-created |
-|------|---------|--------------|
-| `.code-rules.md` | Custom coding rules | ❌ |
-| `.ai-guard-ignore` | Files to exclude | ❌ |
-| `.ai-guard-cache/` | Response cache | ✅ |
-
-### Advanced Configuration Examples
+Fine-tune AI Guard behavior:
 
 ```bash
-# Use Ollama locally (free, private)
-export AI_PROVIDER="ollama"
-export AI_MODEL="codellama"  # or llama2, mistral, etc.
+# AI Provider Configuration
+export AI_PROVIDER="openai"              # openai|claude|gemini|cohere|ollama
+export AI_MODEL="gpt-4"                  # Specific model to use
+export OPENAI_API_KEY="sk-your-key"      # Your API key
 
-# High-performance setup
-export AI_GUARD_TIMEOUT=60000        # 60 seconds
-export AI_GUARD_MAX_FILE_SIZE=100000 # 100KB files
+# Performance Tuning
+export AI_GUARD_TIMEOUT=45000            # Review timeout (45 seconds)
+export AI_GUARD_MAX_FILE_SIZE=100000     # Max file size (100KB)
 
-# Team consistency
-export AI_PROVIDER="openai"
-export AI_MODEL="gpt-4"
+# Advanced Configuration
+export AI_GUARD_CACHE_DURATION=86400000  # Cache duration (24 hours)
+export AI_GUARD_RETRY_COUNT=3            # Number of retries on failure
 ```
 
 ## 🔧 Advanced Usage
 
-### Provider-Specific Features
+### 🎛️ **Multiple AI Providers**
 
-#### OpenAI GPT-4
-- **Best overall accuracy**
-- **Great with multiple languages**
-- **Excellent security analysis**
+Switch between providers based on your needs:
 
-#### Anthropic Claude
-- **Superior code understanding**
-- **Great with complex logic**
-- **Excellent explanations**
-
-#### Google Gemini
-- **Fast and efficient**
-- **Good with structured data**
-- **Free tier available**
-
-#### Cohere
-- **Strong with documentation**
-- **Good API design analysis**
-- **Reliable performance**
-
-#### Ollama (Local)
-- **Complete privacy** - runs locally
-- **No API costs** - free to use
-- **Works offline** - no internet needed
-- **Multiple models** - codellama, llama2, mistral, etc.
-
-### Temporary Overrides
 ```bash
-# Use different provider for one commit
-AI_PROVIDER=claude git commit -m "refactor: complex algorithm"
+# Use OpenAI for general code review
+export AI_PROVIDER="openai"
+export OPENAI_API_KEY="sk-your-openai-key"
 
-# Longer timeout for large changes  
-AI_GUARD_TIMEOUT=120000 git commit -m "feat: major refactoring"
+# Switch to Claude for complex logic review  
+export AI_PROVIDER="claude"
+export CLAUDE_API_KEY="sk-ant-your-claude-key"
 
-# Skip AI review completely
-git commit -m "docs: fix typo" --no-verify
+# Use Ollama for private/sensitive code (runs locally)
+export AI_PROVIDER="ollama"
+export AI_MODEL="codellama"  # or deepseek-coder, starcoder, etc.
 ```
 
-### Cache Management
+### ⏱️ **Timeout Configuration**
+
+Adjust timeouts based on project size:
+
 ```bash
-# View cache status
-ls -la .ai-guard-cache/
+# Quick reviews for small changes
+export AI_GUARD_TIMEOUT=15000  # 15 seconds
 
-# Clear old cache entries
-find .ai-guard-cache -name "*.json" -mtime +7 -delete
+# Longer timeout for large refactors
+export AI_GUARD_TIMEOUT=60000  # 60 seconds
 
-# Clear all cache
-rm -rf .ai-guard-cache
+# Maximum timeout for complex projects
+export AI_GUARD_TIMEOUT=120000 # 2 minutes
+```
+
+### 🎯 **Project-Specific Setup**
+
+Different configurations for different projects:
+
+```bash
+# Frontend project - focus on React/TypeScript
+echo "Focus on React best practices, TypeScript usage, and accessibility" > .code-rules.md
+
+# Backend API - focus on security and performance  
+echo "Prioritize security, error handling, and API design" > .code-rules.md
+
+# DevOps repository - focus on infrastructure
+echo "Review Terraform syntax, security groups, and resource naming" > .code-rules.md
+```
+
+### 🔄 **CI/CD Integration**
+
+Use in continuous integration:
+
+```yaml
+# GitHub Actions example
+name: AI Code Review
+on: [pull_request]
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: npm install -g ai-commit-guard
+      - run: ai-commit-guard --setup
+      - run: git add . && ai-commit-guard
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
 
 ## 🏷️ Commit Message Flags
 
 AI Guard automatically adds flags to track review status:
 
-### Success Cases
+| Flag | Meaning | Action Needed |
+|------|---------|---------------|
+| `[AI-REVIEW-PASSED]` | ✅ AI approved the changes | None - code is good |
+| `[AI-REVIEW-FAILED-TIMEOUT]` | ⏱️ Review timed out | Manual review recommended |
+| `[AI-REVIEW-SKIPPED-ERROR]` | ❌ Error occurred (no API key, etc.) | Check configuration |
+| No flag | 🚫 AI review failed - commit blocked | Fix issues and retry |
+
+### 📊 **Team Analytics**
+
+Track AI review coverage across your team:
+
+```bash
+# Check review coverage in recent commits
+git log --oneline --grep="AI-REVIEW" | wc -l
+
+# Find commits that need manual review
+git log --oneline --grep="TIMEOUT\|ERROR" --since="1 week ago"
+
+# Show successful AI reviews
+git log --oneline --grep="AI-REVIEW-PASSED" --since="1 month ago"
 ```
-feat: add payment processing [AI-REVIEW-PASSED]
-```
 
-### Timeout Cases
-```  
-refactor: large codebase changes [AI-REVIEW-FAILED-TIMEOUT]
-```
+## 🆚 Why Choose AI Commit Guard?
 
-### Error Cases
-```
-fix: urgent hotfix [AI-REVIEW-SKIPPED-ERROR]
-```
+### **vs ESLint/Prettier**
+- ✅ **Language Agnostic** - Works with any language, not just JavaScript
+- ✅ **Context Aware** - Understands business logic, not just syntax
+- ✅ **Custom Rules** - Natural language rules vs complex configuration
+- ✅ **Security Focus** - Automatically detects exposed secrets and vulnerabilities
 
-**Flag Benefits:**
-- ✅ **Transparency** - Team knows which commits were AI-reviewed
-- 🔍 **Audit Trail** - Easy to find commits that need manual review
-- 📊 **Analytics** - Track AI review coverage over time
-- 🚨 **Risk Assessment** - Prioritize manual review for flagged commits
+### **vs SonarQube**
+- ✅ **Instant Feedback** - Pre-commit vs post-commit analysis
+- ✅ **Zero Setup** - No server installation or complex configuration
+- ✅ **AI-Powered** - Intelligent analysis vs pattern matching
+- ✅ **Cost Effective** - Pay-per-use vs enterprise licensing
 
-## 🤔 Why Choose AI Commit Guard?
+### **vs Manual Code Review**
+- ✅ **Consistent** - Same standards applied every time
+- ✅ **Fast** - Instant feedback vs waiting for reviewers
+- ✅ **Educational** - Teaches best practices to junior developers
+- ✅ **24/7 Available** - No dependency on team availability
 
-### 🆚 Comparison with Other Tools
+## 🎯 Use Cases
 
-| Feature | AI Commit Guard | ESLint/Prettier | SonarQube | Manual Review |
-|---------|-----------------|-----------------|-----------|---------------|
-| **Language Support** | ✅ Universal (any language) | ⚠️ JavaScript-focused | ✅ Multi-language | ✅ Any language |
-| **Custom Rules** | ✅ Natural language | ⚠️ Complex config | ⚠️ Preset rules | ✅ Unlimited flexibility |
-| **Context Understanding** | ✅ Understands business logic | ❌ Syntax only | ⚠️ Pattern-based | ✅ Full context |
-| **Security Analysis** | ✅ Auto-detects secrets | ❌ Limited | ✅ Comprehensive | ⚠️ Manual vigilance |
-| **Setup Complexity** | ✅ Zero config | ⚠️ Config files needed | ❌ Complex setup | ✅ No setup |
-| **Speed** | ✅ Instant (cached) | ✅ Very fast | ❌ Slow scans | ❌ Human speed |
-| **Cost** | 💰 Pay per use | 🆓 Free | 💰 Enterprise pricing | 💰 Developer time |
-| **Learning** | ✅ Teaches best practices | ❌ Just flags issues | ⚠️ Reports only | ✅ Mentoring |
+### **🏢 Enterprise Teams**
+- Enforce consistent coding standards across multiple teams
+- Catch security vulnerabilities before they reach production
+- Reduce code review time by pre-filtering obvious issues
+- Onboard new developers with automated mentoring
 
-### 🎯 Perfect For
+### **🚀 Startups**
+- Move fast without breaking quality standards
+- Catch issues early when you can't afford technical debt
+- Scale code quality as your team grows
+- Focus senior developers on architecture, not basic reviews
 
-- **🏢 Enterprise Teams** - Consistent quality across all projects
-- **🚀 Startups** - Fast development with quality gates
-- **👨‍🏫 Mentoring** - Educational feedback for junior developers
-- **🔒 Security-Critical** - Catch vulnerabilities early
-- **🌐 Multi-Language** - Teams using diverse tech stacks
-- **📚 Open Source** - Maintain quality in community contributions
+### **👨‍🎓 Educational**
+- Learn best practices through immediate feedback
+- Understand security concepts through real examples
+- Improve code quality incrementally
+- Get explanations for why changes are needed
+
+### **🔒 Security-Critical Projects**
+- Automatically detect exposed secrets and credentials
+- Catch injection vulnerabilities before commit
+- Enforce secure coding practices consistently
+- Maintain audit trail of all code changes
 
 ## 🐛 Troubleshooting
 
-### Common Issues & Solutions
+### **Common Issues**
 
 #### "No AI API key found"
 ```bash
-# Check current environment
+# Check if environment variables are set
 env | grep -E "(OPENAI|CLAUDE|GEMINI|COHERE)_API_KEY"
 
-# Set for current session
-export OPENAI_API_KEY="sk-your-key"
+# Set API key for current session
+export OPENAI_API_KEY="sk-your-actual-key"
 
-# Make permanent (choose one)
+# Make permanent (add to shell profile)
 echo 'export OPENAI_API_KEY="sk-your-key"' >> ~/.bashrc
 echo 'export OPENAI_API_KEY="sk-your-key"' >> ~/.zshrc
 ```
 
 #### "AI review timed out"
 ```bash
-# Increase timeout
+# Increase timeout for large projects
 export AI_GUARD_TIMEOUT=60000  # 60 seconds
 
-# Try different provider
-export AI_PROVIDER="claude"    # Often faster than OpenAI
+# Check network connectivity
+curl -I https://api.openai.com
 
-# Use local Ollama (no network dependency)
+# Try with smaller changesets
+git add specific-file.js  # Instead of git add .
+
+# Use faster provider
+export AI_PROVIDER="gemini"  # Often faster than OpenAI
+
+# Use local Ollama for no network dependency
 export AI_PROVIDER="ollama"
 ```
 
 #### "Too many files being reviewed"
 ```bash
-# Check what's being reviewed
+# Check what files are being processed
 git diff --cached --name-only
 
-# Add to .ai-guard-ignore
+# Add patterns to ignore large files
 echo "dist/*" >> .ai-guard-ignore
-echo "*.generated.*" >> .ai-guard-ignore
+echo "*.min.js" >> .ai-guard-ignore
+echo "package-lock.json" >> .ai-guard-ignore
 
-# Stage specific files only
-git add src/ --exclude="*.test.js"
+# Reduce file size limit
+export AI_GUARD_MAX_FILE_SIZE=25000  # 25KB
+
+# Stage files incrementally
+git add src/components/  # Review by directory
+git commit -m "feat: update components"
+git add src/utils/
+git commit -m "feat: update utilities"
+```
+
+#### "Husky deprecated warnings"
+```bash
+# Remove old husky configuration
+rm -rf .husky
+rm .huskyrc*
+
+# Reinstall with modern setup
+npx ai-commit-guard --setup
+
+# Manual fix if needed
+echo "npx ai-commit-guard" > .husky/pre-commit
+echo 'npx ai-commit-guard --commit-msg "$1"' > .husky/commit-msg
+chmod +x .husky/*
 ```
 
 #### "Binary files being reviewed"
@@ -485,119 +458,277 @@ git add src/ --exclude="*.test.js"
 # Check git's binary detection
 git diff --cached --numstat
 
-# Binary files show as: -	-	filename
-# These should be automatically excluded
-
-# If still having issues, add to ignore:
+# Add file types to ignore
 echo "*.pdf" >> .ai-guard-ignore
 echo "*.jpg" >> .ai-guard-ignore
+echo "*.png" >> .ai-guard-ignore
+
+# Check current ignore patterns
+cat .ai-guard-ignore
 ```
 
-#### "Review quality is poor"
+#### "Cache issues"
 ```bash
-# Use more specific rules in .code-rules.md
-echo "Focus on security and logic errors, not style" >> .code-rules.md
+# Clear cache to force fresh review
+rm -rf .ai-guard-cache
 
-# Try a different AI provider
-export AI_PROVIDER="claude"  # Often better for code understanding
+# Check cache size
+du -sh .ai-guard-cache
 
-# Increase context with smaller changesets  
-git add specific-files.js  # Instead of git add .
+# Disable cache temporarily
+export AI_GUARD_CACHE_DURATION=0
 ```
 
-### Performance Optimization
+### **Performance Tips**
 
 ```bash
-# Enable better caching
-export NODE_ENV=production
+# ⚡ Optimize for speed
+export AI_PROVIDER="gemini"          # Fastest provider
+export AI_GUARD_TIMEOUT=20000        # Shorter timeout
+export AI_GUARD_MAX_FILE_SIZE=30000  # Smaller files
 
-# Reduce file size threshold
-export AI_GUARD_MAX_FILE_SIZE=25000  # 25KB
+# 🎯 Optimize for accuracy  
+export AI_PROVIDER="claude"          # Best code understanding
+export AI_GUARD_TIMEOUT=60000        # Longer timeout
+export AI_MODEL="claude-3-opus"      # Most capable model
 
-# Use faster provider for large projects
-export AI_PROVIDER="gemini"  # Generally faster
-
-# Clear old cache periodically
-find .ai-guard-cache -mtime +30 -delete
+# 🔒 Optimize for privacy
+export AI_PROVIDER="ollama"          # Local processing
+export AI_MODEL="codellama"          # Good code model
+# No API key needed, runs entirely local
 ```
 
-## 📈 Roadmap
+## 📊 Analytics & Monitoring
 
-### 🔜 Coming Soon
-- [ ] **VS Code Extension** - Inline AI review as you code
-- [ ] **GitHub Actions Integration** - PR-level reviews
-- [ ] **IDE Plugins** - IntelliJ, WebStorm, PyCharm support
-- [ ] **Team Analytics** - Review metrics and insights
+### **Review Statistics**
 
-### 🎯 Future Features
+Track your AI review effectiveness:
+
+```bash
+# Total commits with AI review
+git log --grep="AI-REVIEW" --oneline | wc -l
+
+# Success rate
+git log --grep="AI-REVIEW-PASSED" --oneline | wc -l
+
+# Timeout rate  
+git log --grep="TIMEOUT" --oneline | wc -l
+
+# Recent review activity
+git log --grep="AI-REVIEW" --since="1 week ago" --pretty=format:"%h %s"
+```
+
+### **Team Dashboard Script**
+
+```bash
+#!/bin/bash
+# ai-guard-stats.sh - Team AI review dashboard
+
+echo "🤖 AI Commit Guard Team Statistics"
+echo "=================================="
+
+# Total commits in last 30 days
+total=$(git log --since="30 days ago" --oneline | wc -l)
+echo "📊 Total commits (30 days): $total"
+
+# AI reviewed commits
+reviewed=$(git log --since="30 days ago" --grep="AI-REVIEW" --oneline | wc -l)
+echo "🤖 AI reviewed commits: $reviewed"
+
+# Success rate
+passed=$(git log --since="30 days ago" --grep="AI-REVIEW-PASSED" --oneline | wc -l)
+echo "✅ Successful reviews: $passed"
+
+# Calculate percentage
+if [ $total -gt 0 ]; then
+  coverage=$((reviewed * 100 / total))
+  echo "📈 AI review coverage: ${coverage}%"
+fi
+
+echo ""
+echo "🚨 Recent issues found:"
+git log --since="7 days ago" --grep="AI-REVIEW" --invert-grep --grep="AI-REVIEW-PASSED" --oneline | head -5
+```
+
+## 🚀 Advanced Integrations
+
+### **VS Code Extension** (Coming Soon)
+- Real-time AI feedback as you type
+- Inline suggestions and fixes
+- Integration with VS Code problems panel
+
+### **IDE Plugins** (Roadmap)
+- IntelliJ IDEA / WebStorm / PyCharm support
+- Real-time code analysis
+- Contextual suggestions in editor
+
+### **GitHub Actions Integration**
+
+```yaml
+name: AI Code Review
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install AI Commit Guard
+        run: npm install -g ai-commit-guard
+        
+      - name: Run AI Review on Changes
+        run: |
+          # Get changed files in PR
+          git diff --name-only origin/main...HEAD > changed_files.txt
+          
+          # Stage changed files for review
+          cat changed_files.txt | xargs git add
+          
+          # Run AI review
+          ai-commit-guard
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AI_GUARD_TIMEOUT: 60000
+          
+      - name: Comment on PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🤖 AI Code Review found issues that need attention. Please check the workflow logs for details.'
+            });
+```
+
+### **GitLab CI Integration**
+
+```yaml
+# .gitlab-ci.yml
+ai-code-review:
+  stage: test
+  image: node:18
+  before_script:
+    - npm install -g ai-commit-guard
+  script:
+    - git diff --name-only $CI_MERGE_REQUEST_TARGET_BRANCH_SHA..$CI_COMMIT_SHA | xargs git add
+    - ai-commit-guard
+  variables:
+    AI_PROVIDER: "openai"
+    AI_GUARD_TIMEOUT: "60000"
+  only:
+    - merge_requests
+```
+
+## 🔮 Roadmap
+
+- [ ] **Code Generation** - AI suggests fixes automatically
+- [ ] **Real-time IDE Extensions** - VS Code, IntelliJ support
+- [ ] **Team Analytics Dashboard** - Web-based review statistics
 - [ ] **Custom AI Models** - Fine-tune for your codebase
-- [ ] **Slack/Discord Bots** - Review notifications
-- [ ] **Git Hook Templates** - Pre-push, pre-merge reviews
-- [ ] **Language Servers** - Real-time review in any editor
-
-### 🤝 Community Requests
-- [ ] **Review Confidence Scores** - AI certainty indicators
-- [ ] **Multi-reviewer** - Get opinions from multiple AIs
+- [ ] **Batch Review Mode** - Review multiple commits at once
+- [ ] **GitHub App** - Native GitHub integration
+- [ ] **Slack/Discord Integration** - Review notifications
+- [ ] **Multi-reviewer Mode** - Get consensus from multiple AIs
 - [ ] **Learning Mode** - Improve rules from team feedback
-- [ ] **Compliance Checks** - OWASP, CWE, NIST standards
+- [ ] **Compliance Scanning** - OWASP, CWE, NIST standards
+- [ ] **Performance Analysis** - Detect performance bottlenecks
+- [ ] **Architecture Review** - High-level design feedback
 
 ## 🤝 Contributing
 
-We love contributions! Here's how to get started:
+We love contributions! Here's how to get involved:
 
-### 🚀 Quick Contribution
+### **🐛 Bug Reports**
+- Use our [issue template](https://github.com/ademalkan/ai-commit-guard/issues/new?template=bug_report.md)
+- Include AI provider, OS, and Node.js version
+- Provide minimal reproduction case
+
+### **💡 Feature Requests**
+- Check [existing discussions](https://github.com/ademalkan/ai-commit-guard/discussions)
+- Explain the use case and expected behavior
+- Consider implementation complexity
+
+### **🔧 Code Contributions**
+
 ```bash
-# 1. Fork on GitHub
+# 1. Fork the repository on GitHub
+
 # 2. Clone your fork
 git clone https://github.com/yourusername/ai-commit-guard.git
 cd ai-commit-guard
 
-# 3. Install dependencies  
+# 3. Install dependencies
 npm install
 
 # 4. Run tests
 npm test
 
 # 5. Make your changes
-# 6. Test thoroughly
+# Follow existing code style and patterns
+
+# 6. Test your changes
 npm run test:full
 
-# 7. Submit PR with description
+# 7. Submit a pull request
+# Use conventional commit messages
+git commit -m "feat: add support for new AI provider"
 ```
 
-### 🎯 Areas We Need Help
-- **🌐 Language Support** - Testing with more programming languages
-- **📚 Documentation** - Examples, tutorials, best practices
-- **🧪 Testing** - Unit tests, integration tests, edge cases
-- **🎨 UI/UX** - Better CLI output, error messages
-- **🔧 Integrations** - IDE plugins, CI/CD tools
-
-### 📋 Contribution Guidelines
-- **Code Style** - Run `npm run lint` before submitting
-- **Tests** - Add tests for new features
-- **Documentation** - Update README for new features
-- **Commits** - Use conventional commits (`feat:`, `fix:`, etc.)
+### **📚 Documentation**
+- Improve README examples
+- Add use case tutorials
+- Create video guides
+- Translate to other languages
 
 ## 📄 License
 
 MIT © [Adem Alkan](https://github.com/ademalkan)
 
-## 💬 Support & Community
+## 🌟 Support
 
+### **💬 Community**
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/ademalkan/ai-commit-guard/issues)
 - 💡 **Feature Requests**: [GitHub Discussions](https://github.com/ademalkan/ai-commit-guard/discussions)
 
-### 🌟 Show Your Support
+### **📞 Professional Support**
+- 🏢 **Enterprise Support**: Available for teams and organizations
+- 🎓 **Training Sessions**: Custom workshops for your team
+- 🔧 **Custom Integration**: Tailored solutions for your workflow
 
-If AI Commit Guard helps you write better code:
+### **☕ Show Your Appreciation**
 
-- ⭐ **Star this repo** on GitHub
-- 🐦 **Tweet about it** - `@mention` us!
-- 📝 **Write a blog post** - Share your experience
-- 💬 **Tell your team** - Spread the word
+If AI Commit Guard saves you time and improves your code quality:
+
+- ⭐ **Star this repository** on GitHub
+- 🐦 **Share on Twitter** - Tag us @ai_commit_guard
+- 📝 **Write a blog post** about your experience
+- 💰 **Sponsor the project** on GitHub Sponsors
 
 ---
 
-**Made with ❤️ for universal code quality**
 
-*"Code quality should be universal, not language-specific"* - AI Commit Guard Team
+**🚀 Ready to revolutionize your code quality?**
+
+[**Get Started →**](https://www.npmjs.com/package/ai-commit-guard)
+
+---
+
+*"Code quality should be universal, not language-specific"*
+
+**Made with ❤️ by developers, for developers**
+
+</div>

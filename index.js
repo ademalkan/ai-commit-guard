@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
 const { execSync } = require('child_process');
-const { readFileSync, existsSync } = require('fs');
+const { readFileSync, existsSync, writeFileSync, mkdirSync, chmodSync, appendFileSync } = require('fs');
 const chalk = require('chalk');
 const crypto = require('crypto');
 const path = require('path');
 
-// Constants
 const CONFIG = {
   TIMEOUT: {
     DEFAULT: 30000,
@@ -18,7 +17,7 @@ const CONFIG = {
     MIN: 1000,
     MAX: 1000000
   },
-  CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours
+  CACHE_DURATION: 24 * 60 * 60 * 1000,
   BINARY_EXTENSIONS: [
     '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.db', '.sqlite',
     '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.ico',
@@ -28,17 +27,11 @@ const CONFIG = {
     '.ttf', '.otf', '.woff', '.woff2', '.eot'
   ],
   EXCLUDE_PATTERNS: [
-    // Build outputs
     'dist/*', 'build/*', 'out/*', 'target/*', 'bin/*', 'obj/*',
-    // Dependencies
     'node_modules/*', 'vendor/*', '.venv/*', 'venv/*', '__pycache__/*',
-    // Version control
     '.git/*', '.svn/*', '.hg/*',
-    // IDE files
     '.vscode/*', '.idea/*', '*.swp', '*.swo', '*~',
-    // OS files
     '.DS_Store', 'Thumbs.db', 'desktop.ini',
-    // Large generated files
     '*.min.js', '*.min.css', '*.bundle.*', '*-lock.json', '*.lock'
   ],
   FILES: {
@@ -54,18 +47,13 @@ const CONFIG = {
 };
 
 const DEFAULT_IGNORE_PATTERNS = [
-  // Sensitive files
   '*.env*', '*.key', '*.pem', '*.p12', '*.pfx', '*.keystore', '*.jks',
   '*password*', '*secret*', '*token*', '*api-key*', '*private*', '*credential*',
-
-  // Log and temporary files
   '*.log', '*.tmp', '*.temp', '*.cache', '*.pid',
-
-  // Lock and generated files
   'package-lock.json', 'yarn.lock', 'composer.lock', 'Gemfile.lock', 'Pipfile.lock',
   '*.min.js', '*.min.css', '*.bundle.*', '*-lock.*',
-
-  // Build and distribution directories
+  '.ai-guard-cache/*',
+  '.ai-guard-result',
   ...CONFIG.EXCLUDE_PATTERNS
 ];
 
@@ -180,22 +168,19 @@ class AICommitGuard {
       return envProvider;
     }
 
-    // Auto-detect based on available API keys
     if (process.env.OPENAI_API_KEY) return 'openai';
     if (process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY) return 'claude';
     if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) return 'gemini';
     if (process.env.COHERE_API_KEY) return 'cohere';
 
-    // Check if Ollama is running locally
     try {
       const { execSync } = require('child_process');
       execSync('curl -s http://localhost:11434/api/tags', { timeout: 1000 });
       return 'ollama';
     } catch {
-      // Ollama not available
     }
 
-    return 'openai'; // default
+    return 'openai';
   }
 
   _getTimeout() {
@@ -238,16 +223,20 @@ class AICommitGuard {
   _formatAIResponse(response) {
     const lines = response.split('\n');
     return lines.map(line => {
-      if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
-        return chalk.yellow('  ' + line.trim());
-      } else if (line.includes('Fix:') || line.includes('Solution:')) {
-        return chalk.green('  ' + line);
-      } else if (line.includes('Issue:') || line.includes('Problem:')) {
-        return chalk.red('  ' + line);
-      } else if (line.trim().length > 0) {
-        return chalk.white('  ' + line);
+      const trimmedLine = line.trim();
+      if (!trimmedLine) return '';
+
+      if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.match(/^\d+\./)) {
+        return chalk.yellow('  ' + trimmedLine);
+      } else if (trimmedLine.includes('Fix:') || trimmedLine.includes('Solution:') || trimmedLine.includes('Improvement:')) {
+        return chalk.green('  ' + trimmedLine);
+      } else if (trimmedLine.includes('Issue:') || trimmedLine.includes('Problem:') || trimmedLine.includes('Error:')) {
+        return chalk.red('  ' + trimmedLine);
+      } else if (trimmedLine.includes('Great job') || trimmedLine.includes('excellent') || trimmedLine.includes('good')) {
+        return chalk.green('  ' + trimmedLine);
+      } else {
+        return chalk.white('  ' + trimmedLine);
       }
-      return '';
     }).join('\n');
   }
 
@@ -274,13 +263,11 @@ class AICommitGuard {
     const lowerPath = filePath.toLowerCase();
     const lowerName = fileName.toLowerCase();
 
-    // Check sensitive keywords
     if (SENSITIVE_KEYWORDS.some(keyword =>
         lowerPath.includes(keyword) || lowerName.includes(keyword))) {
       return true;
     }
 
-    // Check patterns
     return patterns.some(pattern => {
       if (pattern.includes('*')) {
         const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
@@ -296,7 +283,6 @@ class AICommitGuard {
       const allFiles = output.trim().split('\n').filter(file => {
         if (!file) return false;
 
-        // Skip binary files by extension
         const ext = path.extname(file).toLowerCase();
         if (CONFIG.BINARY_EXTENSIONS.includes(ext)) {
           return false;
@@ -308,15 +294,11 @@ class AICommitGuard {
       const ignorePatterns = this.loadIgnorePatterns();
       const filteredFiles = allFiles.filter(file => !this.shouldIgnoreFile(file, ignorePatterns));
 
-      // Additional check for binary files using git
       const nonBinaryFiles = filteredFiles.filter(file => {
         try {
-          // Check if file is binary using git
           const result = execSync(`git diff --cached --numstat "${file}"`, { encoding: 'utf8' });
-          // Binary files show as "-	-	filename" in numstat
           return !result.startsWith('-\t-\t');
         } catch {
-          // If we can't check, assume it's text
           return true;
         }
       });
@@ -415,7 +397,7 @@ Review all code changes regardless of programming language, markup, configuratio
       return readFileSync(CONFIG.FILES.RULES, 'utf8');
     } catch (error) {
       this._logWarning(`Could not read ${CONFIG.FILES.RULES}: ${error.message}`);
-      return this.loadRules(); // Return default rules
+      return this.loadRules();
     }
   }
 
@@ -449,13 +431,11 @@ Review all code changes regardless of programming language, markup, configuratio
       let headers = providerConfig.headers(this.apiKey);
       let payload = providerConfig.payload(prompt, this.model);
 
-      // Special handling for Gemini API key in URL
       if (this.provider === 'gemini' && providerConfig.buildUrl) {
         url = providerConfig.buildUrl(this.apiKey);
-        headers = providerConfig.headers(); // No API key in headers for Gemini
+        headers = providerConfig.headers();
       }
 
-      // Special handling for Ollama (no API key needed)
       if (this.provider === 'ollama') {
         headers = providerConfig.headers();
       }
@@ -526,7 +506,7 @@ Focus on functionality, security, and maintainability over minor style preferenc
 
   getCacheKey(changes) {
     const hash = crypto.createHash('sha256').update(changes + this.provider + this.model).digest('hex');
-    return hash.substring(0, 16); // Use first 16 characters for shorter filenames
+    return hash.substring(0, 16);
   }
 
   getCache(key) {
@@ -539,7 +519,6 @@ Focus on functionality, security, and maintainability over minor style preferenc
         }
       }
     } catch (error) {
-      // Ignore cache errors
     }
     return null;
   }
@@ -568,10 +547,27 @@ Focus on functionality, security, and maintainability over minor style preferenc
 
   async run() {
     try {
+      if (process.argv.includes('--setup')) {
+        return this._runSetup();
+      }
+
+      if (process.argv.includes('--commit-msg')) {
+        return this._handleCommitMsg();
+      }
+
+      if (process.argv.includes('--version') || process.argv.includes('-v')) {
+        return this._showVersion();
+      }
+
+      if (process.argv.includes('--help') || process.argv.includes('-h')) {
+        return this._showHelp();
+      }
+
       if (!this.apiKey && this.provider !== 'ollama') {
         this._logWarning('No AI API key found. Please set appropriate API key environment variable');
         this._logInfo('Supported providers: OpenAI, Claude, Gemini, Cohere, Ollama');
-        this._commitWithFlag(CONFIG.COMMIT_FLAGS.ERROR);
+        this._storeReviewResult('ERROR');
+        process.exit(0);
         return;
       }
 
@@ -607,7 +603,8 @@ Focus on functionality, security, and maintainability over minor style preferenc
         } catch (timeoutError) {
           if (timeoutError.message.includes('timeout')) {
             this._logWarning(`AI review timed out after ${this.timeout/1000} seconds`);
-            this._commitWithFlag(CONFIG.COMMIT_FLAGS.TIMEOUT);
+            this._storeReviewResult('TIMEOUT');
+            process.exit(0);
             return;
           }
           throw timeoutError;
@@ -620,68 +617,341 @@ Focus on functionality, security, and maintainability over minor style preferenc
         process.exit(1);
       } else {
         this._logSuccess('Code review passed!');
-
-        if (result.toLowerCase().includes('approve')) {
-          const suggestions = result.replace(/^approve/i, '').trim();
-          if (suggestions) {
-            console.log(chalk.blue('💡 Suggestions:'));
-            console.log(this._formatAIResponse(suggestions));
-          }
-        }
-
-        // Add success flag to commit message
-        this._commitWithSuccessFlag();
+        this._storeReviewResult('SUCCESS');
+        process.exit(0);
       }
 
     } catch (error) {
       this._logWarning(`Review failed: ${error.message}`);
-      this._commitWithFlag(CONFIG.COMMIT_FLAGS.ERROR);
+      this._storeReviewResult('ERROR');
+      process.exit(0);
     }
   }
 
-  _commitWithSuccessFlag() {
+  _runSetup() {
     try {
-      const originalMessage = this._getOriginalCommitMessage();
-      if (originalMessage) {
-        const newMessage = `${originalMessage} [${CONFIG.COMMIT_FLAGS.SUCCESS}]`;
-        this._logInfo(`Adding success flag: [${CONFIG.COMMIT_FLAGS.SUCCESS}]`);
+      console.log('🚀 Setting up AI Commit Guard hooks...\n');
 
-        execSync(`git commit --amend --no-edit -m "${newMessage.replace(/"/g, '\\"')}"`, {
-          stdio: 'inherit'
-        });
+      try {
+        execSync('git rev-parse --git-dir', { stdio: 'ignore' });
+      } catch (error) {
+        console.log('❌ Not a git repository. Please run this in a git repository.');
+        console.log('💡 Initialize git first: git init');
+        process.exit(1);
       }
+
+      if (!existsSync('.husky')) {
+        console.log('📦 Installing husky...');
+
+        if (!existsSync('package.json')) {
+          console.log('📝 Creating package.json...');
+          execSync('npm init -y', { stdio: 'inherit' });
+        }
+
+        try {
+          execSync('npm install --save-dev husky', { stdio: 'inherit' });
+          execSync('npx husky init', { stdio: 'inherit' });
+          console.log('✅ Husky installed successfully\n');
+        } catch (error) {
+          console.log('⚠️  Could not install husky automatically. Please install manually:');
+          console.log('   npm install --save-dev husky');
+          console.log('   npx husky init\n');
+        }
+      }
+
+      if (!existsSync('.husky')) {
+        mkdirSync('.husky', { recursive: true });
+      }
+
+      console.log('🔍 Setting up pre-commit hook...');
+      const preCommitHook = `npx ai-commit-guard`;
+      writeFileSync('.husky/pre-commit', preCommitHook);
+
+      if (process.platform !== 'win32') {
+        try {
+          chmodSync('.husky/pre-commit', '755');
+        } catch (error) {
+        }
+      }
+
+      console.log('📝 Setting up commit-msg hook...');
+      const commitMsgHook = `npx ai-commit-guard --commit-msg "$1"`;
+      writeFileSync('.husky/commit-msg', commitMsgHook);
+
+      if (process.platform !== 'win32') {
+        try {
+          chmodSync('.husky/commit-msg', '755');
+        } catch (error) {
+        }
+      }
+
+      console.log('📁 Updating .gitignore...');
+      const gitignoreEntries = `
+# AI Commit Guard
+.ai-guard-cache/
+.ai-guard-result
+`;
+
+      let gitignoreContent = '';
+      if (existsSync('.gitignore')) {
+        gitignoreContent = readFileSync('.gitignore', 'utf8');
+      }
+
+      if (!gitignoreContent.includes('.ai-guard-cache/')) {
+        appendFileSync('.gitignore', gitignoreEntries);
+        console.log('✅ Added AI Commit Guard entries to .gitignore');
+      }
+
+      if (!existsSync('.ai-guard-ignore')) {
+        console.log('📋 Creating sample .ai-guard-ignore...');
+        const sampleIgnore = `# AI Commit Guard - Files to exclude from review
+
+# Sensitive files (automatically ignored by default)
+*.env*
+*.key
+*secret*
+*password*
+
+# Project-specific ignores
+dist/*
+build/*
+generated/*
+legacy-code/*
+third-party/*
+
+# Large files
+*.min.js
+*.bundle.*
+package-lock.json
+`;
+        writeFileSync('.ai-guard-ignore', sampleIgnore);
+      }
+
+      if (!existsSync('.code-rules.md')) {
+        console.log('📜 Creating sample .code-rules.md...');
+        const sampleRules = `# Project Code Review Rules
+
+## Code Quality
+- Use meaningful variable and function names
+- Keep functions under 20-30 lines when possible  
+- No magic numbers or strings - use named constants
+- Remove unused imports and variables
+- Add comments for complex business logic
+
+## Security & Best Practices
+- Never commit sensitive data (API keys, passwords, tokens)
+- Validate all user inputs
+- Use proper error handling with try-catch blocks
+- Follow consistent naming conventions
+- Use parameterized queries to prevent SQL injection
+
+## Project-Specific Rules
+- Add your team's specific coding standards here
+- Language-specific best practices
+- Framework conventions (React, Vue, etc.)
+- Database and API guidelines
+`;
+        writeFileSync('.code-rules.md', sampleRules);
+      }
+
+      console.log('\n🎉 AI Commit Guard setup completed successfully!\n');
+
+      console.log('📋 What happens now:');
+      console.log('  1. pre-commit: AI reviews your code changes');
+      console.log('  2. commit-msg: Adds appropriate flags to commit message\n');
+
+      console.log('📁 Configuration files:');
+      console.log('  .code-rules.md       - Customize your coding standards');
+      console.log('  .ai-guard-ignore     - Exclude files from AI review\n');
+
+      console.log('🔑 Set your AI API key:');
+      console.log('  export OPENAI_API_KEY="sk-your-openai-key"');
+      console.log('  # or');
+      console.log('  export CLAUDE_API_KEY="sk-ant-your-claude-key"');
+      console.log('  export AI_PROVIDER="claude"\n');
+
+      console.log('🚀 Try it now:');
+      console.log('  git add .');
+      console.log('  git commit -m "feat: your feature description"');
+      console.log('\n💡 Need help? Check the README.md for more configuration options.');
+
       process.exit(0);
+
     } catch (error) {
-      // If we can't amend the commit, just exit successfully
-      // The commit has already been made successfully at this point
-      process.exit(0);
-    }
-  }
-
-  _commitWithFlag(flagType) {
-    try {
-      const commitMsg = this._getOriginalCommitMessage() || 'commit';
-      const newMsg = `${commitMsg} [${flagType}]`;
-
-      this._logInfo(`Committing with flag: [${flagType}]`);
-
-      execSync(`git commit --no-verify -m "${newMsg.replace(/"/g, '\\"')}"`, {
-        stdio: 'inherit'
-      });
-
-      this._logSuccess('Commit completed with AI review flag');
-      process.exit(0);
-
-    } catch (error) {
-      this._logError('Could not commit. Please commit manually with flag:');
-      this._logInfo(`   git commit -m "your message [${flagType}]"`);
+      console.error('❌ Setup failed:', error.message);
+      console.log('\n🔧 Manual setup instructions:');
+      console.log('1. Install husky: npm install --save-dev husky');
+      console.log('2. Initialize: npx husky init');
+      console.log('3. Add pre-commit hook: echo "npx ai-commit-guard" > .husky/pre-commit');
+      console.log('4. Add commit-msg hook: echo "npx ai-commit-guard --commit-msg \\$1" > .husky/commit-msg');
+      console.log('5. Set permissions: chmod +x .husky/*');
       process.exit(1);
     }
   }
 
+  _handleCommitMsg() {
+    try {
+      const commitMsgFile = process.argv[process.argv.indexOf('--commit-msg') + 1];
+      if (!commitMsgFile || !existsSync(commitMsgFile)) {
+        process.exit(0);
+      }
+
+      const currentMsg = readFileSync(commitMsgFile, 'utf8').trim();
+      const reviewResult = this._getStoredReviewResult();
+
+      if (!reviewResult) {
+        process.exit(0);
+      }
+
+      let flag;
+      switch (reviewResult) {
+        case 'SUCCESS':
+          flag = CONFIG.COMMIT_FLAGS.SUCCESS;
+          break;
+        case 'TIMEOUT':
+          flag = CONFIG.COMMIT_FLAGS.TIMEOUT;
+          break;
+        case 'ERROR':
+          flag = CONFIG.COMMIT_FLAGS.ERROR;
+          break;
+        default:
+          process.exit(0);
+      }
+
+      if (!currentMsg.includes(`[${flag}]`)) {
+        const newMsg = `${currentMsg} [${flag}]`;
+        writeFileSync(commitMsgFile, newMsg);
+        this._logInfo(`Added flag: [${flag}]`);
+      }
+
+      this._clearStoredReviewResult();
+      process.exit(0);
+
+    } catch (error) {
+      this._logWarning(`Could not handle commit message: ${error.message}`);
+      process.exit(0);
+    }
+  }
+
+  _storeReviewResult(result) {
+    try {
+      writeFileSync('.ai-guard-result', result);
+    } catch (error) {
+    }
+  }
+
+  _getStoredReviewResult() {
+    try {
+      if (existsSync('.ai-guard-result')) {
+        return readFileSync('.ai-guard-result', 'utf8').trim();
+      }
+    } catch (error) {
+    }
+    return null;
+  }
+
+  _clearStoredReviewResult() {
+    try {
+      const fs = require('fs');
+      if (existsSync('.ai-guard-result')) {
+        fs.unlinkSync('.ai-guard-result');
+      }
+    } catch (error) {
+    }
+  }
+
+  _showVersion() {
+    const packagePath = path.join(__dirname, 'package.json');
+    let version = '2.0.0';
+
+    try {
+      if (existsSync(packagePath)) {
+        const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
+        version = pkg.version || version;
+      }
+    } catch (error) {
+    }
+
+    console.log(`🤖 AI Commit Guard v${version}`);
+    console.log('Universal AI-powered pre-commit code review tool');
+    console.log('');
+    console.log('Supported AI Providers:');
+    console.log('  • OpenAI GPT-4');
+    console.log('  • Anthropic Claude');
+    console.log('  • Google Gemini');
+    console.log('  • Cohere Command');
+    console.log('  • Ollama (Local)');
+    console.log('');
+    console.log('More info: https://github.com/ademalkan/ai-commit-guard');
+    process.exit(0);
+  }
+
+  _showHelp() {
+    console.log('🤖 AI Commit Guard - Universal AI-powered code review tool');
+    console.log('');
+    console.log('USAGE:');
+    console.log('  ai-commit-guard [OPTIONS]');
+    console.log('');
+    console.log('OPTIONS:');
+    console.log('  --setup              Setup AI Commit Guard hooks in current project');
+    console.log('  --commit-msg <file>  Handle commit message (used by git hooks)');
+    console.log('  --version, -v        Show version information');
+    console.log('  --help, -h           Show this help message');
+    console.log('');
+    console.log('ENVIRONMENT VARIABLES:');
+    console.log('  OPENAI_API_KEY       OpenAI API key');
+    console.log('  CLAUDE_API_KEY       Anthropic Claude API key');
+    console.log('  GEMINI_API_KEY       Google Gemini API key');
+    console.log('  COHERE_API_KEY       Cohere API key');
+    console.log('  AI_PROVIDER          AI provider (openai|claude|gemini|cohere|ollama)');
+    console.log('  AI_MODEL             Specific model name to use');
+    console.log('  AI_GUARD_TIMEOUT     Review timeout in milliseconds (default: 30000)');
+    console.log('  AI_GUARD_MAX_FILE_SIZE  Max file size in bytes (default: 50000)');
+    console.log('');
+    console.log('EXAMPLES:');
+    console.log('  # Setup in new project');
+    console.log('  ai-commit-guard --setup');
+    console.log('');
+    console.log('  # Set API key and commit');
+    console.log('  export OPENAI_API_KEY="sk-your-key"');
+    console.log('  git add .');
+    console.log('  git commit -m "feat: add new feature"');
+    console.log('');
+    console.log('  # Use different AI provider');
+    console.log('  export CLAUDE_API_KEY="sk-ant-your-key"');
+    console.log('  export AI_PROVIDER="claude"');
+    console.log('');
+    console.log('  # Use local Ollama');
+    console.log('  export AI_PROVIDER="ollama"');
+    console.log('');
+    console.log('CONFIGURATION FILES:');
+    console.log('  .code-rules.md       Custom coding rules and standards');
+    console.log('  .ai-guard-ignore     Files to exclude from AI review');
+    console.log('');
+    console.log('For more information, visit:');
+    console.log('  https://github.com/ademalkan/ai-commit-guard');
+    process.exit(0);
+  }
+
   _getOriginalCommitMessage() {
     try {
-      // Check command line arguments
+      if (process.argv[2] && existsSync(process.argv[2])) {
+        const commitMsgFile = process.argv[2];
+        const content = readFileSync(commitMsgFile, 'utf8').trim();
+        if (content && !content.startsWith('#')) {
+          return content.split('\n')[0];
+        }
+      }
+
+      const gitDir = execSync('git rev-parse --git-dir', { encoding: 'utf8' }).trim();
+      const commitMsgFile = path.join(gitDir, 'COMMIT_EDITMSG');
+      if (existsSync(commitMsgFile)) {
+        const content = readFileSync(commitMsgFile, 'utf8').trim();
+        if (content && !content.startsWith('#')) {
+          return content.split('\n')[0];
+        }
+      }
+
       const args = process.argv.slice(2);
       for (let i = 0; i < args.length; i++) {
         if (args[i] === '-m' && args[i + 1]) {
@@ -695,27 +965,18 @@ Focus on functionality, security, and maintainability over minor style preferenc
         }
       }
 
-      // Check environment variable
       if (process.env.GIT_COMMIT_MESSAGE) {
         return process.env.GIT_COMMIT_MESSAGE;
       }
 
-      // Check git commit message file
-      const gitDir = execSync('git rev-parse --git-dir', { encoding: 'utf8' }).trim();
-      const commitMsgFile = path.join(gitDir, 'COMMIT_EDITMSG');
-      if (existsSync(commitMsgFile)) {
-        const content = readFileSync(commitMsgFile, 'utf8').trim();
-        return content.split('\n')[0]; // First line only
-      }
-
       return null;
     } catch (error) {
+      this._logWarning(`Could not get commit message: ${error.message}`);
       return null;
     }
   }
 }
 
-// Export for testing and module usage
 if (require.main === module) {
   new AICommitGuard().run();
 }
