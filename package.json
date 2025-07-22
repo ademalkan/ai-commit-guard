@@ -1,0 +1,27 @@
+{
+  "name": "ai-commit-guard",
+  "version": "1.1.6",
+  "description": "AI-powered pre-commit code review tool",
+  "main": "index.js",
+  "bin": {
+    "ai-commit-guard": "index.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "git",
+    "pre-commit",
+    "code-review",
+    "ai",
+    "automation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
