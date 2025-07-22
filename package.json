@@ -1,6 +1,6 @@
 {
   "name": "ai-commit-guard",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "AI-powered pre-commit code review tool",
   "main": "index.js",
   "bin": {
@@ -16,7 +16,7 @@
     "ai",
     "automation"
   ],
-  "author": "Your Name",
+  "author": "Adem ALKAN",
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2"
