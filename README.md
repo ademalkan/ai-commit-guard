@@ -668,7 +668,7 @@ We love contributions! Here's how to get involved:
 # 1. Fork the repository on GitHub
 
 # 2. Clone your fork
-git clone https://github.com/yourusername/ai-commit-guard.git
+git clone https://github.com/ademalkan/ai-commit-guard.git
 cd ai-commit-guard
 
 # 3. Install dependencies
